@@ -3,7 +3,7 @@ version: "1.0"
 author: Sridaran T.
 about: Reminds user to do things
 args:
-  - config:
+  - set_file:
       short: f
       long: file
       value_name: FILE
