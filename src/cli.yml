@@ -1,0 +1,34 @@
+name: RemindMe
+version: "1.0"
+author: Sridaran T.
+about: Reminds user to do things
+args:
+  - config:
+      short: f
+      long: file
+      value_name: FILE
+      help: Sets todo file
+      takes_value: true
+  - INPUT:
+      help: Sets the input file to use
+      required: true
+      index: 1
+subcommands:
+    - finish:
+        about: Marks task as completed
+        version: "1.0"
+        author: Sridaran T.
+        args:
+            - INPUT:
+                help: Takes in either number of task or substring of task
+                required: true
+                index: 1
+    - add:
+        about: Adds task to be completed
+        version: "1.0"
+        author: Sridaran T.
+        args:
+            - INPUT:
+                help: Takes in string to be remembered
+                required: true
+                index: 1
