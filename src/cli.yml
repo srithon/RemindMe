@@ -28,3 +28,11 @@ subcommands:
                 help: Takes in string to be remembered
                 required: true
                 index: 1
+    - list:
+        about: "List current tasks to do"
+        version: "1.0"
+        author: Sridaran T.
+        args:
+            - group:
+                help: Takes in name of group to list
+    
