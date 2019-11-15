@@ -2,6 +2,10 @@ name: RemindMe
 version: "1.0"
 author: Sridaran T.
 about: Reminds user to do things
+
+settings:
+    - TrailingVarArg
+
 args:
   - set_file:
       short: f
@@ -27,6 +31,8 @@ subcommands:
             - INPUT:
                 help: Takes in string to be remembered
                 required: true
+                multiple: true
+                takes_value: true
                 index: 1
     - list:
         about: "List current tasks to do"
