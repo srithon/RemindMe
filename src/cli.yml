@@ -4,6 +4,7 @@ author: Sridaran T.
 about: Reminds user to do things
 
 settings:
+    - AllowMissingPositional
     - TrailingVarArg
 
 args:
@@ -18,25 +19,38 @@ subcommands:
         version: "1.0"
         author: Sridaran T.
         args:
+            - group-name:
+                help: Name of the group to search for task in
+                index: 1
+                takes_value: true
             - INPUT:
                 help: Takes in either number of task or substring of task
                 required: true
-                index: 1
+                index: 2
     - add:
         about: Adds task to be completed
         version: "1.0"
         author: Sridaran T.
         args:
+            - group-name:
+                help: Name of the group to add task to
+                index: 1
+                takes_value: true
             - INPUT:
                 help: Takes in string to be remembered
                 required: true
                 multiple: true
                 takes_value: true
-                index: 1
+                index: 2
     - list:
         about: "List current tasks to do"
         version: "1.0"
         author: Sridaran T.
+        args:
+            - group-name:
+                help: Name of group to list tasks of
+                index: 1
+                takes_value: true
     - group:
         about: Handles all group-related commands
         version: "1.0"
