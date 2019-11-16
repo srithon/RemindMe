@@ -7,12 +7,6 @@ settings:
     - TrailingVarArg
 
 args:
-    - set_file:
-        short: f
-        long: file
-        value_name: FILE
-        help: Sets todo file
-        takes_value: true
     - group:
         help: Group to search for task in
         short: g
@@ -43,4 +37,46 @@ subcommands:
         about: "List current tasks to do"
         version: "1.0"
         author: Sridaran T.
+    - group:
+        about: Handles all group-related commands
+        version: "1.0"
+        author: Sridaran T.
+        subcommands:
+            - create:
+                about: "Creates a new group"
+                version: "1.0"
+                author: Sridaran T.
+                args:
+                    - name:
+                        help: "Name of the group to be created"
+                        required: true
+                        index: 1
+            - delete:
+                about: "Deletes an existing group"
+                version: "1.0"
+                author: Sridaran T.
+                args:
+                    - name:
+                        help: "Name of the group to be deleted"
+                        required: true
+                        index: 1
+            - clear:
+                about: "Clears all tasks from an existing group without deleting it"
+                version: "1.0"
+                author: Sridaran T.
+                args:
+                    - name:
+                        help: "Name of the group to be cleared"
+                        required: true
+                        index: 1
+    - config:
+        about: "Edit configuration of RemindMe"
+        version: "1.0"
+        author: Sridaran T.
+        args:
+            - print_configuration:
+                help: "Prints all current configuration options"
+                long: print
+                short: p
+
     
