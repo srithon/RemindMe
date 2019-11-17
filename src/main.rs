@@ -19,16 +19,15 @@ fn main()
     if let Some(user_dirs) = UserDirs::new()
     {
         baseDirectoryName = user_dirs.home_dir().join(".remindme/");
-        // println!("{}", baseDirectoryName.display());
     }
     else
     {
         panic!("Cannot find base directory");
     }
 
-    let baseTodoFileName = "todo";
+    let defaultGroup = "general";
 
-    let todoFileName = baseDirectoryName.join(&baseTodoFileName);
+    let defaultGroupFileName = baseDirectoryName.join(&defaultGroup);
 
     match matches.subcommand()
     {
@@ -44,21 +43,25 @@ fn main()
                 and then do same index thing
             */
 
-            // figure out if index or substring
+            let fileToOpen = defaultGroupFileName;
+
+            // find group that it applies to 
             if let Some(subMatches) = subMatchesMaybe {
-                let finishGroup;
                 if let Some(groupName) = subMatches.value_of("group")
                 {
-                    finishGroup = groupName;
+                    fileToOpen = baseDirectoryName.join(&groupName);
                 }
-                else
-                {
-                    // default value
-                    finishGroup = baseTodoFileName;
-                }
-
-                
             }
+
+            let mut file = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .open(fileToOpen)
+                .unwrap();
+
+            // treat as indices by default
+
         },
         ("add", subMatchesMaybe) => {
             println!("Used add");
@@ -97,7 +100,8 @@ fn main()
             let mut file = OpenOptions::new()
                 .write(true)
                 .append(true)
-                .open(todoFileName)
+                .create(true)
+                .open(defaultGroupFileName)
                 .unwrap();
             
             // if let Err(e) = writeln!(file, "{}", string)
