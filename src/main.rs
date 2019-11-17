@@ -4,6 +4,7 @@ use clap::App;
 use directories::UserDirs;
 
 use std::env;
+use std::path::{Path, PathBuf};
 use std::fs::{OpenOptions, File};
 use std::io::{BufRead, BufReader, Write};
 
@@ -15,7 +16,7 @@ fn main()
     // let matches = App::from(yaml).get_matches();
     let matches = create_app::create_app_object().get_matches();
     
-    let baseDirectoryName;
+    let baseDirectoryName: PathBuf;
     if let Some(user_dirs) = UserDirs::new()
     {
         baseDirectoryName = user_dirs.home_dir().join(".remindme/");
@@ -41,24 +42,45 @@ fn main()
             if index is provided, add "FINISHED"
             if substring provided, list all tasks that match,
                 and then do same index thing
-            */
+            */         
 
-            let fileToOpen = defaultGroupFileName;
+            let fileToOpen = match subMatchesMaybe {
+                Some(subMatches) => {
+                    if let Some(groupName) = subMatches.value_of("group")
+                    {
+                        println!("Got the group value!");
+                        baseDirectoryName.join(groupName)
+                    }
+                    else
+                    {
+                        defaultGroupFileName
+                    }
+                },
+                None => panic!("No matches in finish subMatchesMaybe match; todo")
+            };
 
-            // find group that it applies to 
-            if let Some(subMatches) = subMatchesMaybe {
-                if let Some(groupName) = subMatches.value_of("group")
-                {
-                    fileToOpen = baseDirectoryName.join(&groupName);
-                }
+            if !fileToOpen.exists()
+            {
+                println!("Must create the group first! {}", fileToOpen.display());
+                return;
             }
 
-            let mut file = OpenOptions::new()
-                .read(true)
-                .write(true)
-                .create(true)
-                .open(fileToOpen)
-                .unwrap();
+            // let mut file = OpenOptions::new()
+            //     .read(true)
+            //     .write(true)
+            //     .create(false)
+            //     .open(fileToOpen)
+            //     .unwrap();
+            
+            // true
+            let input_is_substring: bool = match subMatchesMaybe {
+                Some(subMatches) => {
+                    subMatches.is_present("substring")
+                },
+                None => panic!("No matches in finish subMatchesMaybe match 2; todo")
+            };
+            
+            println!("Input_is_substring: {}", input_is_substring);
 
             // treat as indices by default
 
@@ -126,7 +148,7 @@ fn main()
         // list is the default subcommand
         (_, subMatchesMaybe) => {
             println!("Used list");
-            let todoFile = File::open(todoFileName).unwrap();
+            let todoFile = File::open(defaultGroupFileName).unwrap();
             let reader = BufReader::new(todoFile);
 
             for (index, line) in reader.lines().enumerate() {
