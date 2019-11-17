@@ -25,8 +25,17 @@ pub fn create_app_object() -> App<'static, 'static> {
                             .short("g")
                             .long("group")
                             .help("Name of the group to search for task in")
-                            .required(true)
-                            .default_value(""),
+                            .required(true),
+                        Arg::with_name("index")
+                            .short("i")
+                            .long("index")
+                            .help("Flag that indicates that you are trying to pass in indices")
+                            .conflicts_with("substring"),
+                        Arg::with_name("substring")
+                            .short("s")
+                            .long("substring")
+                            .help("Flag that indicates that you are trying to pass in a substring or substrings")
+                            .conflicts_with("index"),
                         Arg::with_name("INPUT")
                             .help("Takes in index or substring of task in group to mark completed")
                             .required(true)
