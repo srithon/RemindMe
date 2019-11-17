@@ -25,7 +25,8 @@ pub fn create_app_object() -> App<'static, 'static> {
                             .short("g")
                             .long("group")
                             .help("Name of the group to search for task in")
-                            .required(true),
+                            .required(true)
+                            .default_value(""),
                         Arg::with_name("index")
                             .short("i")
                             .long("index")
