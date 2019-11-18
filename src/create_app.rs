@@ -8,12 +8,6 @@ pub fn create_app_object() -> App<'static, 'static> {
         .about("Reminds user to do things")
         .setting(AppSettings::DontDelimitTrailingValues)
         .setting(AppSettings::TrailingVarArg)
-        .arg(
-            Arg::with_name("group")
-                .help("Group to search for task in")
-                .short("g")
-                .long("group")
-                .takes_value(true))
         .subcommand(
             SubCommand::with_name("finish")
                 .about("Marks task as completed")
