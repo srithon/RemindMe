@@ -19,6 +19,7 @@ pub fn create_app_object() -> App<'static, 'static> {
                 .about("Marks task as completed")
                 .version("1.0")
                 .author("Sridaran T.")
+                .visible_alias("-")
                 .args(
                     &[
                         Arg::with_name("group")
@@ -49,6 +50,7 @@ pub fn create_app_object() -> App<'static, 'static> {
                 .about("Adds task to be completed")
                 .version("1.0")
                 .author("Sridaran T.")
+                .visible_alias("+")
                 .args(
                     &[
                         Arg::with_name("group")
