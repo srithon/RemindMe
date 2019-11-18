@@ -231,7 +231,22 @@ fn main()
         // list is the default subcommand
         (_, subMatchesMaybe) => {
             println!("Used list");
-            if let Ok(todoFile) = File::open(defaultGroupFileName)
+
+            let fileName = match subMatchesMaybe {
+                Some(subMatches) => {
+                    if let Some(groupName) = subMatches.value_of("group-name")
+                    {
+                        baseDirectoryName.join(groupName)
+                    }
+                    else
+                    {
+                        defaultGroupFileName
+                    }
+                },
+                None => defaultGroupFileName
+            };
+
+            if let Ok(todoFile) = File::open(fileName)
             {
                 let reader = BufReader::new(todoFile);
 
