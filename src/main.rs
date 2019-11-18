@@ -6,7 +6,7 @@ use directories::UserDirs;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::fs::{OpenOptions, File};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Write, Seek, SeekFrom};
 
 mod create_app;
 
@@ -49,11 +49,18 @@ fn main()
                     if let Some(groupName) = subMatches.value_of("group")
                     {
                         println!("Got the group value!");
-                        baseDirectoryName.join(groupName)
+                        if (groupName != "")
+                        {
+                            baseDirectoryName.join(groupName)
+                        }
+                        else
+                        {
+                            defaultGroupFileName
+                        }
                     }
                     else
                     {
-                        defaultGroupFileName
+                        panic!("Else for group value? what?");
                     }
                 },
                 None => panic!("No matches in finish subMatchesMaybe match; todo")
@@ -64,13 +71,6 @@ fn main()
                 println!("Must create the group first! {}", fileToOpen.display());
                 return;
             }
-
-            // let mut file = OpenOptions::new()
-            //     .read(true)
-            //     .write(true)
-            //     .create(false)
-            //     .open(fileToOpen)
-            //     .unwrap();
             
             // true
             let input_is_substring: bool = match subMatchesMaybe {
@@ -80,9 +80,92 @@ fn main()
                 None => panic!("No matches in finish subMatchesMaybe match 2; todo")
             };
             
-            println!("Input_is_substring: {}", input_is_substring);
+            let mut indices_to_mark: Option<Vec<usize>> = None;
 
             // treat as indices by default
+            if !input_is_substring {
+                // step 1: sort indices
+                match subMatchesMaybe {
+                    Some(subMatches) => {
+                        let input = subMatches.values_of("INPUT");
+                        match input {
+                            Some(values_list) => {
+                                // todo safety
+                                indices_to_mark = Some(values_list
+                                    .map(|string| {
+                                        if let Ok(parsed) = string.parse::<usize>() {
+                                            parsed
+                                        }
+                                        else
+                                        {
+                                            println!("Invalid index: {}", string);
+                                            panic!("!!!!");
+                                            // return
+                                        }
+                                    })
+                                    .collect::<Vec<usize>>());
+                            }
+                            None => println!("Empty...")
+                        }
+                    }
+                    None => {
+                        println!("No input passed in");
+                    }
+                }
+
+                let file_read = File::open(&fileToOpen);
+
+                if file_read.is_err() {
+                    println!("Cannot open file!");
+                    return;
+                }
+
+                let mut indices = indices_to_mark.unwrap();
+                indices.sort();
+
+                let reader = BufReader::new(file_read.unwrap());
+                let mut all_tasks: Vec<_> = reader.lines().collect();
+
+                let mut deleted: usize = 0;
+
+                for mut index in indices {
+                    index -= 1;
+
+                    if index < 0 {
+                        println!("Invalid index: {}", index);
+                        continue;
+                    }
+
+                    if index > all_tasks.len() {
+                        return;
+                    }
+
+                    // todo handle err
+                    all_tasks.remove(index - deleted);
+                    deleted += 1;
+                }
+
+                // file_read.
+
+                let mut file = OpenOptions::new()
+                    .write(true)
+                    .open(&fileToOpen)
+                    .unwrap();
+                
+                file.set_len(0);
+                file.seek(SeekFrom::Start(0));
+                
+                for line in all_tasks
+                {
+                    if let Ok(line) = line {
+                        // todo handle err
+                        writeln!(&mut file, "{}", line);
+                    }
+                }
+            }
+            else {
+                // todo implement substring
+            }
 
         },
         ("add", subMatchesMaybe) => {
@@ -148,12 +231,18 @@ fn main()
         // list is the default subcommand
         (_, subMatchesMaybe) => {
             println!("Used list");
-            let todoFile = File::open(defaultGroupFileName).unwrap();
-            let reader = BufReader::new(todoFile);
+            if let Ok(todoFile) = File::open(defaultGroupFileName)
+            {
+                let reader = BufReader::new(todoFile);
 
-            for (index, line) in reader.lines().enumerate() {
-                let line = line.unwrap();
-                println!("{}. {}", index + 1, line);
+                for (index, line) in reader.lines().enumerate() {
+                    let line = line.unwrap();
+                    println!("{}. {}", index + 1, line);
+                }
+            }
+            else
+            {
+                println!("Group not yet created");
             }
         }
     }
