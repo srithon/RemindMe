@@ -172,15 +172,20 @@ fn main()
             println!("Used add");
 
             let mut string = "".to_string();
+            let mut fileToOpen: Option<PathBuf> = None;
 
             if let Some(subMatches) = subMatchesMaybe {
-                if let Some(groupName) = subMatches.value_of("group-name") {
-                    println!("group name: {}", groupName);
+                if let Some(groupName) = subMatches.value_of("group") {
+                    if groupName != ""
+                    {
+                        fileToOpen = Some(baseDirectoryName.join(groupName));
+                    }
+                    else
+                    {
+                        fileToOpen = Some(defaultGroupFileName);
+                    }
                 }
                 if let Some(listOfWords) = subMatches.values_of("INPUT") {
-                    if let Some(words) = subMatches.value_of("INPUT") {
-                        println!("first value: {}", words);
-                    }
                     let mut word_count = 0;
                     listOfWords.for_each(|word| {
                             string.push_str(&word);
@@ -188,7 +193,7 @@ fn main()
                             word_count += 1;
                         }
                     );
-                    println!("Word count: {}", word_count);
+                    // println!("Word count: {}", word_count);
                     // println!("Full string: \"{}\"", string);
                 }
                 else
@@ -206,7 +211,7 @@ fn main()
                 .write(true)
                 .append(true)
                 .create(true)
-                .open(defaultGroupFileName)
+                .open(fileToOpen.unwrap())
                 .unwrap();
             
             // if let Err(e) = writeln!(file, "{}", string)
