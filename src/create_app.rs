@@ -65,6 +65,7 @@ pub fn create_app_object() -> App<'static, 'static> {
                 .about("List current tasks to do")
                 .version("1.0")
                 .author("Sridaran T.")
+                .alias("l")
                 .arg(
                     Arg::with_name("group-name")
                         .help("Name of the group to search for task in")
