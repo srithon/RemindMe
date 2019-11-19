@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate clap;
 use clap::App;
-use directories::UserDirs;
+use directories::{ProjectDirs};
 
 use std::env;
 use std::path::{Path, PathBuf};
@@ -15,25 +15,24 @@ fn main()
     // let yaml = load_yaml!("cli.yml");
     // let matches = App::from(yaml).get_matches();
     let matches = create_app::create_app_object().get_matches();
-    
-    let baseDirectoryName: PathBuf;
-    if let Some(user_dirs) = UserDirs::new()
-    {
-        baseDirectoryName = user_dirs.home_dir().join(".remindme");
-    }
-    else
-    {
+    let projectDirectory = ProjectDirs::from("", "Sridaran Thoniyil", "RemindMe");
+
+    if let None = projectDirectory {
         panic!("Cannot find base directory");
     }
 
-    if (!Path::exists(&baseDirectoryName))
+    let projectDirectory = projectDirectory.unwrap();
+
+    let dataDir = projectDirectory.data_dir();
+
+    if !Path::exists(&dataDir)
     {
-        fs::create_dir(&baseDirectoryName);
+        fs::create_dir_all(&dataDir);
     }
 
     let defaultGroup = "general";
 
-    let defaultGroupFileName = baseDirectoryName.join(&defaultGroup);
+    let defaultGroupFileName = dataDir.join(&defaultGroup);
 
     match matches.subcommand()
     {
@@ -56,7 +55,7 @@ fn main()
                         println!("Got the group value!");
                         if (groupName != "")
                         {
-                            baseDirectoryName.join(groupName)
+                            dataDir.join(groupName)
                         }
                         else
                         {
@@ -183,7 +182,7 @@ fn main()
                 if let Some(groupName) = subMatches.value_of("group") {
                     if groupName != ""
                     {
-                        fileToOpen = Some(baseDirectoryName.join(groupName));
+                        fileToOpen = Some(dataDir.join(groupName));
                     }
                     else
                     {
@@ -246,7 +245,7 @@ fn main()
                 Some(subMatches) => {
                     if let Some(groupName) = subMatches.value_of("group-name")
                     {
-                        baseDirectoryName.join(groupName)
+                        dataDir.join(groupName)
                     }
                     else
                     {
