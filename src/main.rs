@@ -19,7 +19,7 @@ fn main()
     let baseDirectoryName: PathBuf;
     if let Some(user_dirs) = UserDirs::new()
     {
-        baseDirectoryName = user_dirs.home_dir().join(".remindme/");
+        baseDirectoryName = user_dirs.home_dir().join(".remindme");
     }
     else
     {
@@ -29,11 +29,6 @@ fn main()
     if (!Path::exists(&baseDirectoryName))
     {
         fs::create_dir(&baseDirectoryName);
-        println!("Created base directory at {:?}", baseDirectoryName);
-    }
-    else
-    {
-        println!("Base directory already exists");
     }
 
     let defaultGroup = "general";
