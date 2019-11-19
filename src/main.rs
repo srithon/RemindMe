@@ -46,29 +46,27 @@ fn main()
             if index is provided, add "FINISHED"
             if substring provided, list all tasks that match,
                 and then do same index thing
-            */         
+            */
 
-            let fileToOpen = match subMatchesMaybe {
-                Some(subMatches) => {
-                    if let Some(groupName) = subMatches.value_of("group")
+            let subMatches = subMatchesMaybe.unwrap();
+
+            let fileToOpen = if let Some(groupName) = subMatches.value_of("group")
+                {
+                    println!("Got the group value!");
+                    if groupName != ""
                     {
-                        println!("Got the group value!");
-                        if (groupName != "")
-                        {
-                            dataDir.join(groupName)
-                        }
-                        else
-                        {
-                            defaultGroupFileName
-                        }
+                        dataDir.join(groupName)
                     }
                     else
                     {
-                        panic!("Else for group value? what?");
+                        defaultGroupFileName
                     }
-                },
-                None => panic!("No matches in finish subMatchesMaybe match; todo")
-            };
+                }
+                else
+                {
+                    // there is a default value, why is it none?
+                    panic!("Else for group value? what?");
+                };
 
             if !fileToOpen.exists()
             {
@@ -77,44 +75,32 @@ fn main()
             }
             
             // true
-            let input_is_substring: bool = match subMatchesMaybe {
-                Some(subMatches) => {
-                    subMatches.is_present("substring")
-                },
-                None => panic!("No matches in finish subMatchesMaybe match 2; todo")
-            };
+            let input_is_substring: bool = subMatches.is_present("substring");
             
             let mut indices_to_mark: Option<Vec<usize>> = None;
 
             // treat as indices by default
             if !input_is_substring {
                 // step 1: sort indices
-                match subMatchesMaybe {
-                    Some(subMatches) => {
-                        let input = subMatches.values_of("INPUT");
-                        match input {
-                            Some(values_list) => {
-                                // todo safety
-                                indices_to_mark = Some(values_list
-                                    .map(|string| {
-                                        if let Ok(parsed) = string.parse::<usize>() {
-                                            parsed
-                                        }
-                                        else
-                                        {
-                                            println!("Invalid index: {}", string);
-                                            panic!("!!!!");
-                                            // return
-                                        }
-                                    })
-                                    .collect::<Vec<usize>>());
-                            }
-                            None => println!("Empty...")
-                        }
+                let input = subMatches.values_of("INPUT");
+                match input {
+                    Some(values_list) => {
+                        // todo safety
+                        indices_to_mark = Some(values_list
+                            .map(|string| {
+                                if let Ok(parsed) = string.parse::<usize>() {
+                                    parsed
+                                }
+                                else
+                                {
+                                    println!("Invalid index: {}", string);
+                                    panic!("!!!!");
+                                    // return
+                                }
+                            })
+                            .collect::<Vec<usize>>());
                     }
-                    None => {
-                        println!("No input passed in");
-                    }
+                    None => println!("Empty...")
                 }
 
                 let file_read = File::open(&fileToOpen);
@@ -170,52 +156,45 @@ fn main()
             else {
                 // todo implement substring
             }
-
         },
         ("add", subMatchesMaybe) => {
             println!("Used add");
 
-            let mut string = "".to_string();
-            let mut fileToOpen: Option<PathBuf> = None;
+            let subMatches = subMatchesMaybe.unwrap();
 
-            if let Some(subMatches) = subMatchesMaybe {
-                if let Some(groupName) = subMatches.value_of("group") {
-                    if groupName != ""
-                    {
-                        fileToOpen = Some(dataDir.join(groupName));
-                    }
-                    else
-                    {
-                        fileToOpen = Some(defaultGroupFileName);
-                    }
-                }
-                if let Some(listOfWords) = subMatches.values_of("INPUT") {
-                    let mut word_count = 0;
-                    listOfWords.for_each(|word| {
-                            string.push_str(&word);
-                            string.push_str(&" ".to_string());
-                            word_count += 1;
-                        }
-                    );
-                    // println!("Word count: {}", word_count);
-                    // println!("Full string: \"{}\"", string);
+            let mut string = "".to_string();
+            
+            let fileToOpen = {
+                let groupName = subMatches.value_of("group").unwrap();
+
+                if groupName != ""
+                {
+                    dataDir.join(groupName)
                 }
                 else
                 {
-                    // what does this mean?
+                    defaultGroupFileName
                 }
-            }            
+            };
+
+            if let Some(listOfWords) = subMatches.values_of("INPUT")
+            {
+                listOfWords.for_each(|word| {
+                        string.push_str(&word);
+                        string.push_str(&" ".to_string());
+                    }
+                );
+            }
             else
             {
-                // added empty string
-                // TODO
+                println!("No input passed in! Nothing to add!");
             }
 
             let mut file = OpenOptions::new()
                 .write(true)
                 .append(true)
                 .create(true)
-                .open(fileToOpen.unwrap())
+                .open(fileToOpen)
                 .unwrap();
             
             // if let Err(e) = writeln!(file, "{}", string)
@@ -241,8 +220,8 @@ fn main()
         (_, subMatchesMaybe) => {
             println!("Used list");
 
-            let fileName = match subMatchesMaybe {
-                Some(subMatches) => {
+            let fileName = if let Some(subMatches) = subMatchesMaybe
+                {
                     if let Some(groupName) = subMatches.value_of("group-name")
                     {
                         dataDir.join(groupName)
@@ -251,13 +230,15 @@ fn main()
                     {
                         defaultGroupFileName
                     }
-                },
-                None => defaultGroupFileName
-            };
+                }
+                else
+                {
+                    defaultGroupFileName
+                };
 
-            if let Ok(todoFile) = File::open(fileName)
+            if let Ok(fileToList) = File::open(&fileName)
             {
-                let reader = BufReader::new(todoFile);
+                let reader = BufReader::new(fileToList);
 
                 for (index, line) in reader.lines().enumerate() {
                     let line = line.unwrap();
