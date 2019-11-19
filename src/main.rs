@@ -5,7 +5,7 @@ use directories::UserDirs;
 
 use std::env;
 use std::path::{Path, PathBuf};
-use std::fs::{OpenOptions, File};
+use std::fs::{self, OpenOptions, File};
 use std::io::{BufRead, BufReader, Write, Seek, SeekFrom};
 
 mod create_app;
@@ -24,6 +24,16 @@ fn main()
     else
     {
         panic!("Cannot find base directory");
+    }
+
+    if (!Path::exists(&baseDirectoryName))
+    {
+        fs::create_dir(&baseDirectoryName);
+        println!("Created base directory at {:?}", baseDirectoryName);
+    }
+    else
+    {
+        println!("Base directory already exists");
     }
 
     let defaultGroup = "general";
