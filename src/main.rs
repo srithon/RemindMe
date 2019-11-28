@@ -6,7 +6,7 @@ use directories::{ProjectDirs};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::fs::{self, OpenOptions, File};
-use std::io::{BufRead, BufReader, Write, Seek, SeekFrom};
+use std::io::{stdin, stdout, BufRead, BufReader, Write, Seek, SeekFrom};
 
 mod create_app;
 
@@ -79,10 +79,11 @@ fn main()
             
             let mut indices_to_mark: Option<Vec<usize>> = None;
 
+            let input = subMatches.values_of("INPUT");
+
             // treat as indices by default
             if !input_is_substring {
                 // step 1: sort indices
-                let input = subMatches.values_of("INPUT");
                 match input {
                     Some(values_list) => {
                         // todo safety
@@ -154,7 +155,191 @@ fn main()
                 }
             }
             else {
-                // todo implement substring
+                let substring_to_search_for: String = match input {
+                    Some(substring_words_list) => {
+                        substring_words_list.collect::<Vec<&str>>().join(" ")
+                    },
+                    None => {
+                        println!("Nothing passed in as input");
+                        return;
+                    }
+                };
+
+                // look through the lines and find all that match
+                // print them out on screen
+                // let user specify indices or * to delete all
+                // if user has "no-prompt" option specified, default to *
+
+                if let Ok(file) = File::open(&fileToOpen) {
+                    let lines: Vec<(String, bool, u16)> = {
+                        let reader = BufReader::new(file);
+                        let mut current_line = 0;
+                        reader.lines().filter_map(|line| {
+                            current_line += 1;
+                            if let Ok(line_unwrapped) = line {
+                                if line_unwrapped.contains(&substring_to_search_for)
+                                {
+                                    Some((line_unwrapped, true, current_line))
+                                }
+                                else
+                                {
+                                    Some((line_unwrapped, false, current_line))
+                                }
+                            }
+                            else {
+                                None
+                            }
+                        }).collect::<Vec<(String, bool, u16)>>()
+                        // (line, matches, line_number)
+                    };
+
+                    let matching_lines: Vec<(&String, &u16)> = lines.iter().filter_map(|(line, matching, line_num)| {
+                        if *matching
+                        {
+                            Some((line, line_num))
+                        }
+                        else
+                        {
+                            None
+                        }
+                    }).collect::<Vec<(&String, &u16)>>();
+
+                    if matching_lines.len() == 0
+                    {
+                        println!("Substring did not match anything");
+                        return;
+                    }
+
+                    for (line, num) in matching_lines.iter() {
+                        println!("{}. {}", num, line);
+                    }
+                    
+                    let del = if matching_lines.len() > 1 {
+                        print!("\nWhich substring would you like to delete? (index or * for all) ");
+
+                        // 0 for all or index of line
+                        loop {
+                            let mut input = String::new();
+                            let _ = stdout().flush();
+                            stdin().read_line(&mut input).expect("Um what");
+
+                            if input.len() == 0
+                            {
+                                println!("Please enter something");
+                                continue;
+                            }
+
+                            if input.contains(" ")
+                            {
+                                println!("Please only enter an index or a *");
+                                continue;
+                            }
+                            else
+                            {
+                                let mut chars_iter = input.chars();
+                                let first_char = chars_iter.next().unwrap();
+                                if first_char == '*'
+                                {
+                                    break 0;
+                                }
+                                else
+                                {
+                                    let mut first_word = String::with_capacity(5);
+                                    first_word.push(first_char);
+                                    for c in chars_iter
+                                    {
+                                        if c.is_whitespace()
+                                        {
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            first_word.push(c);
+                                        }
+                                    }
+
+                                    let ind = first_word.parse::<u16>();
+
+                                    if let Err(e) = ind {
+                                        println!("{}", e);
+                                        return;
+                                    }
+
+                                    // 0 is reserved for *
+                                    let ind = ind.unwrap() + 1;
+
+                                    break ind;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        0
+                    };
+
+                    match OpenOptions::new()
+                        .write(true)
+                        .open(&fileToOpen)
+                        {
+                            Ok(mut file) => {
+                                match file.set_len(0) {
+                                    Ok(_) => (),
+                                    Err(e) => {
+                                        eprintln!("Error setting file length to 0: {}", e);
+                                    }
+                                };
+                                match file.seek(SeekFrom::Start(0)) {
+                                    Ok(_) => (),
+                                    Err(e) => {
+                                        eprintln!("Error seeking to start of file: {}", e);
+                                    }
+                                };
+
+                                if del != 0
+                                {
+                                    // println!("Del = {}", del);
+
+                                    // 1 - based
+                                    let mut current_index = 2;
+                                    // do not write the 1 matched line
+                                    for line in lines
+                                    {
+                                        if current_index != del
+                                        {
+                                            match writeln!(file, "{}", line.0)
+                                            {
+                                                Ok(_) => (),
+                                                Err(e) => println!("Error while trying to write line! {}", e)
+                                            }
+                                        }
+
+                                        current_index += 1;
+                                    }
+
+                                    // println!("About to write debugging material!");
+                                    // writeln!(file, "Debugging material");
+                                }
+                                else
+                                {
+                                    // write none of the matching lines
+                                    for line in lines
+                                    {
+                                        if let (line_string, false, _) = line {
+                                            writeln!(file, "{}", line_string);
+                                        }
+                                    }
+                                }
+                            },
+                            Err(e) => {
+                                eprintln!("{}", e);
+                            }
+                        }
+                    
+                    
+                    
+                    
+                }
             }
         },
         ("add", subMatchesMaybe) => {
