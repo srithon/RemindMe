@@ -222,7 +222,7 @@ fn main()
                     // if user has "no-prompt" option specified, default to *
 
                     if let Ok(file) = File::open(&file_to_open) {
-                        let lines: Vec<(String, bool, u16)> = {
+                        let lines: Vec<(String, bool, usize)> = {
                             let reader = BufReader::new(file);
                             let mut current_line = 0;
                             reader.lines().filter_map(|line| {
@@ -240,20 +240,23 @@ fn main()
                                 else {
                                     None
                                 }
-                            }).collect::<Vec<(String, bool, u16)>>()
+                            }).collect::<Vec<(String, bool, usize)>>()
                             // (line, matches, line_number)
                         };
 
-                        let matching_lines: Vec<(&String, &u16)> = lines.iter().filter_map(|(line, matching, line_num)| {
+                        let mut current_index: usize = 0;
+
+                        let matching_lines: Vec<(&String, &usize, usize)> = lines.iter().filter_map(|(line, matching, line_num)| {
                             if *matching
                             {
-                                Some((line, line_num))
+                                current_index += 1;
+                                Some((line, line_num, current_index))
                             }
                             else
                             {
                                 None
                             }
-                        }).collect::<Vec<(&String, &u16)>>();
+                        }).collect::<Vec<(&String, &usize, usize)>>();
 
                         if matching_lines.len() == 0
                         {
@@ -261,15 +264,14 @@ fn main()
                             return;
                         }
 
-                        for (line, num) in matching_lines.iter() {
-                            println!("{}. {}", num, line);
+                        for (line, _, index) in matching_lines.iter() {
+                            println!("{}. {}", index, line);
                         }
                         
-                        let del = if matching_lines.len() > 1 {
-                            print!("\nWhich substring would you like to delete? (index or * for all) ");
-
+                        let del: usize = if matching_lines.len() > 1 {
                             // 0 for all or index of line
                             loop {
+                                print!("\nWhich substring would you like to delete? (index or * for all) ");
                                 let mut input = String::new();
                                 let _ = stdout().flush();
                                 stdin().read_line(&mut input).expect("Um what");
@@ -288,10 +290,25 @@ fn main()
                                 else
                                 {
                                     let mut chars_iter = input.chars();
-                                    let first_char = chars_iter.next().unwrap();
+                                    let first_char = {
+                                        let c = chars_iter.next();
+                                        match c
+                                        {
+                                            Some(n) => n,
+                                            None => {
+                                                eprintln!("Invalid input");
+                                                continue;
+                                            }
+                                        }
+                                    };
                                     if first_char == '*'
                                     {
                                         break 0;
+                                    }
+                                    else if first_char == '0'
+                                    {
+                                        println!("Index is not 0-based!");
+                                        continue;
                                     }
                                     else
                                     {
@@ -309,7 +326,7 @@ fn main()
                                             }
                                         }
 
-                                        let ind = first_word.parse::<u16>();
+                                        let ind = first_word.parse::<usize>();
 
                                         if let Err(e) = ind {
                                             println!("{}", e);
@@ -349,12 +366,20 @@ fn main()
 
                                     if del != 0
                                     {
+                                        let del: usize = {
+                                            // println!("Current value of del: {}", del);
+                                            // println!("Length of [matching_lines]: {}", matching_lines.len());
+                                            let x = matching_lines.get(del - 2).unwrap();
+                                            println!("Deleted: {}", x.0);
+                                            *x.1
+                                        };
+
                                         // println!("Del = {}", del);
 
                                         // 1 - based
-                                        let mut current_index = 2;
+                                        let mut current_index = 1;
                                         // do not write the 1 matched line
-                                        for line in lines
+                                        for line in lines.iter()
                                         {
                                             if current_index != del
                                             {
