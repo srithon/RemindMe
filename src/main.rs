@@ -15,28 +15,28 @@ fn main()
     // let yaml = load_yaml!("cli.yml");
     // let matches = App::from(yaml).get_matches();
     let matches = create_app::create_app_object().get_matches();
-    let projectDirectory = ProjectDirs::from("", "Sridaran Thoniyil", "RemindMe");
+    let project_directory = ProjectDirs::from("", "Sridaran Thoniyil", "RemindMe");
 
-    if let None = projectDirectory {
+    if let None = project_directory {
         panic!("Cannot find base directory");
     }
 
-    let projectDirectory = projectDirectory.unwrap();
+    let project_directory = project_directory.unwrap();
 
-    let dataDir = projectDirectory.data_dir();
+    let data_dir = project_directory.data_dir();
 
-    if !Path::exists(&dataDir)
+    if !Path::exists(&data_dir)
     {
-        fs::create_dir_all(&dataDir);
+        fs::create_dir_all(&data_dir);
     }
 
-    let defaultGroup = "general";
+    let default_group = "general";
 
-    let defaultGroupFileName = dataDir.join(&defaultGroup);
+    let default_group_file_name = data_dir.join(&default_group);
 
     match matches.subcommand()
     {
-        ("finish", subMatchesMaybe) => {
+        ("finish", sub_matches_maybe) => {
             println!("Used finish");
 
             /*
@@ -48,18 +48,18 @@ fn main()
                 and then do same index thing
             */
 
-            let subMatches = subMatchesMaybe.unwrap();
+            let sub_matches = sub_matches_maybe.unwrap();
 
-            let fileToOpen = if let Some(groupName) = subMatches.value_of("group")
+            let file_to_open = if let Some(group_name) = sub_matches.value_of("group")
                 {
                     println!("Got the group value!");
-                    if groupName != ""
+                    if group_name != ""
                     {
-                        dataDir.join(groupName)
+                        data_dir.join(group_name)
                     }
                     else
                     {
-                        defaultGroupFileName
+                        default_group_file_name
                     }
                 }
                 else
@@ -68,13 +68,13 @@ fn main()
                     panic!("Else for group value? what?");
                 };
 
-            if !fileToOpen.exists()
+            if !file_to_open.exists()
             {
-                println!("Must create the group first! {}", fileToOpen.display());
+                println!("Must create the group first! {}", file_to_open.display());
                 return;
             }
 
-            let input = subMatches.values_of("INPUT").unwrap();
+            let input = sub_matches.values_of("INPUT").unwrap();
 
             enum InputValue
             {
@@ -83,13 +83,13 @@ fn main()
             };
 
             let input_parsed: InputValue = {
-                if subMatches.is_present("substring")
+                if sub_matches.is_present("substring")
                 {
                     InputValue::SubString(
                         input.collect::<Vec<&str>>().join(" ")
                     )
                 }
-                else if subMatches.is_present("index")
+                else if sub_matches.is_present("index")
                 {
                     InputValue::Indices(input
                         .map(|string| {
@@ -151,7 +151,7 @@ fn main()
                     // step 1: sort indices
                     // todo safety
 
-                    let file_read = File::open(&fileToOpen);
+                    let file_read = File::open(&file_to_open);
 
                     if file_read.is_err() {
                         println!("Cannot open file!");
@@ -186,7 +186,7 @@ fn main()
 
                     let mut file = OpenOptions::new()
                         .write(true)
-                        .open(&fileToOpen)
+                        .open(&file_to_open)
                         .unwrap();
                     
                     file.set_len(0);
@@ -206,7 +206,7 @@ fn main()
                     // let user specify indices or * to delete all
                     // if user has "no-prompt" option specified, default to *
 
-                    if let Ok(file) = File::open(&fileToOpen) {
+                    if let Ok(file) = File::open(&file_to_open) {
                         let lines: Vec<(String, bool, u16)> = {
                             let reader = BufReader::new(file);
                             let mut current_line = 0;
@@ -316,7 +316,7 @@ fn main()
 
                         match OpenOptions::new()
                             .write(true)
-                            .open(&fileToOpen)
+                            .open(&file_to_open)
                             {
                                 Ok(mut file) => {
                                     match file.set_len(0) {
@@ -375,29 +375,29 @@ fn main()
                 }
             };
         },
-        ("add", subMatchesMaybe) => {
+        ("add", sub_matches_maybe) => {
             println!("Used add");
 
-            let subMatches = subMatchesMaybe.unwrap();
+            let sub_matches = sub_matches_maybe.unwrap();
 
             let mut string = "".to_string();
             
-            let fileToOpen = {
-                let groupName = subMatches.value_of("group").unwrap();
+            let file_to_open = {
+                let group_name = sub_matches.value_of("group").unwrap();
 
-                if groupName != ""
+                if group_name != ""
                 {
-                    dataDir.join(groupName)
+                    data_dir.join(group_name)
                 }
                 else
                 {
-                    defaultGroupFileName
+                    default_group_file_name
                 }
             };
 
-            if let Some(listOfWords) = subMatches.values_of("INPUT")
+            if let Some(list_of_words) = sub_matches.values_of("INPUT")
             {
-                listOfWords.for_each(|word| {
+                list_of_words.for_each(|word| {
                         string.push_str(&word);
                         string.push_str(&" ".to_string());
                     }
@@ -412,7 +412,7 @@ fn main()
                 .write(true)
                 .append(true)
                 .create(true)
-                .open(fileToOpen)
+                .open(file_to_open)
                 .unwrap();
             
             // if let Err(e) = writeln!(file, "{}", string)
@@ -423,9 +423,9 @@ fn main()
             file.write_fmt(format_args!("{}\n", string));
                 
         },
-        ("config", subMatchesMaybe) => {
-            if let Some(subMatches) = subMatchesMaybe {
-                if let Some(sub_group) = subMatches.value_of("group") {
+        ("config", sub_matches_maybe) => {
+            if let Some(sub_matches) = sub_matches_maybe {
+                if let Some(sub_group) = sub_matches.value_of("group") {
                     println!("Group has a value: {}", sub_group);
                 }
                 else
@@ -435,28 +435,28 @@ fn main()
             }
         },
         // list is the default subcommand
-        (_, subMatchesMaybe) => {
+        (_, sub_matches_maybe) => {
             println!("Used list");
 
-            let fileName = if let Some(subMatches) = subMatchesMaybe
+            let file_name = if let Some(sub_matches) = sub_matches_maybe
                 {
-                    if let Some(groupName) = subMatches.value_of("group-name")
+                    if let Some(group_name) = sub_matches.value_of("group-name")
                     {
-                        dataDir.join(groupName)
+                        data_dir.join(group_name)
                     }
                     else
                     {
-                        defaultGroupFileName
+                        default_group_file_name
                     }
                 }
                 else
                 {
-                    defaultGroupFileName
+                    default_group_file_name
                 };
 
-            if let Ok(fileToList) = File::open(&fileName)
+            if let Ok(file_to_list) = File::open(&file_name)
             {
-                let reader = BufReader::new(fileToList);
+                let reader = BufReader::new(file_to_list);
 
                 for (index, line) in reader.lines().enumerate() {
                     let line = line.unwrap();
