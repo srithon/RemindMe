@@ -24,7 +24,13 @@ fn main()
 
     if !Path::exists(&data_dir)
     {
-        fs::create_dir_all(&data_dir);
+        match fs::create_dir_all(&data_dir)
+        {
+            Ok(_) => (),
+            Err(e) => {
+                panic!("Error while trying to create base directory\n{}", e);
+            }
+        }
     }
 
     let default_group = "general";
@@ -151,31 +157,30 @@ fn main()
                     let file_read = File::open(&file_to_open);
 
                     if file_read.is_err() {
-                        println!("Cannot open file!");
-                        return;
+                        panic!("Cannot open file!");
                     }
 
                     indices.sort();
 
                     let reader = BufReader::new(file_read.unwrap());
-                    let mut all_tasks: Vec<_> = reader.lines().collect();
+                    let mut all_tasks: Vec<_> = reader.lines().filter_map(|task| task.ok()).collect();
 
                     let mut deleted: usize = 0;
 
                     for mut index in indices {
-                        index -= 1;
-
-                        if index < 0 {
+                        if index < 1 {
                             println!("Invalid index: {}", index);
                             continue;
                         }
+
+                        index -= 1;
 
                         if index > all_tasks.len() {
                             return;
                         }
 
-                        // todo handle err
                         all_tasks.remove(index - deleted);
+
                         deleted += 1;
                     }
 
@@ -186,14 +191,27 @@ fn main()
                         .open(&file_to_open)
                         .unwrap();
                     
-                    file.set_len(0);
-                    file.seek(SeekFrom::Start(0));
+                    match file.set_len(0) {
+                        Ok(_) => (),
+                        Err(e) => {
+                            eprintln!("Error setting file length to 0: {}", e);
+                        }
+                    };
+                    match file.seek(SeekFrom::Start(0)) {
+                        Ok(_) => (),
+                        Err(e) => {
+                            eprintln!("Error seeking to start of file: {}", e);
+                        }
+                    };
                     
                     for line in all_tasks
                     {
-                        if let Ok(line) = line {
-                            // todo handle err
-                            writeln!(&mut file, "{}", line);
+                        match writeln!(&mut file, "{}", line)
+                        {
+                            Ok(_) => (),
+                            Err(e) => {
+                                panic!("Error writing to file!\n{}", e);
+                            }
                         }
                     }
                 },
@@ -359,13 +377,19 @@ fn main()
                                         for line in lines
                                         {
                                             if let (line_string, false, _) = line {
-                                                writeln!(file, "{}", line_string);
+                                                match writeln!(&mut file, "{}", line_string)
+                                                {
+                                                    Ok(_) => (),
+                                                    Err(e) => {
+                                                        panic!("Error writing to file!\n{}", e);
+                                                    }
+                                                }
                                             }
                                         }
                                     }
                                 },
                                 Err(e) => {
-                                    eprintln!("{}", e);
+                                    panic!("Could not open file for writing!\n{}", e);
                                 }
                             }
                     }
@@ -417,7 +441,13 @@ fn main()
             //     eprintln!("{}", e);
             // }
 
-            file.write_fmt(format_args!("{}\n", string));
+            match file.write_fmt(format_args!("{}\n", string))
+            {
+                Ok(_) => (),
+                Err(e) => {
+                    panic!("Error fmt writing to file!\n{}", e);
+                }
+            }
                 
         },
         ("config", sub_matches_maybe) => {
