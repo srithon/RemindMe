@@ -1,10 +1,7 @@
-#[macro_use]
 extern crate clap;
-use clap::App;
 use directories::{ProjectDirs};
 
-use std::env;
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use std::fs::{self, OpenOptions, File};
 use std::io::{stdin, stdout, BufRead, BufReader, Write, Seek, SeekFrom};
 
