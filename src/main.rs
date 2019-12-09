@@ -48,8 +48,6 @@ fn main()
     match matches.subcommand()
     {
         ("finish", sub_matches_maybe) => {
-            println!("Used finish");
-
             /*
             finish takes in either
                 a) index of the task in the file
@@ -63,7 +61,6 @@ fn main()
 
             let file_to_open = if let Some(group_name) = sub_matches.value_of("group")
                 {
-                    println!("Got the group value!");
                     if group_name != ""
                     {
                         data_dir.join(group_name)
@@ -155,7 +152,7 @@ fn main()
                     }
                 }
             };
-            
+
             buffer.set_color(ColorSpec::new().set_fg(Some(Color::Rgb(240, 95, 95))));
             
             match input_parsed
@@ -459,8 +456,6 @@ fn main()
             };
         },
         ("add", sub_matches_maybe) => {
-            println!("Used add");
-
             let sub_matches = sub_matches_maybe.unwrap();
 
             let mut string = "".to_string();
@@ -556,7 +551,7 @@ fn main()
                         else
                         {
                             vec![data_dir.join(group_name)]
-                    }
+                        }
                     }
                     else
                     {
@@ -570,8 +565,8 @@ fn main()
 
             for file_name in file_names
             {
-            if let Ok(file_to_list) = File::open(&file_name)
-            {
+                if let Ok(file_to_list) = File::open(&file_name)
+                {
                     if let Some(file_name_string) = file_name.file_name()
                     {
                         if let Some(real_file_name_string) = file_name_string.to_str()
@@ -583,15 +578,15 @@ fn main()
                             buffer.set_color(ColorSpec::new().set_fg(Some(Color::Ansi256(209))));
                         }
                     }
-                let reader = BufReader::new(file_to_list);
+                    let reader = BufReader::new(file_to_list);
 
-                for (index, line) in reader.lines().enumerate() {
-                    let line = line.unwrap();
+                    for (index, line) in reader.lines().enumerate() {
+                        let line = line.unwrap();
                         writeln!(&mut buffer, "{}. {}", index + 1, line);
+                    }
                 }
-            }
-            else
-            {
+                else
+                {
                     writeln!(&mut buffer, "Group not yet created");
                 }
 
