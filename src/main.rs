@@ -1,9 +1,11 @@
 extern crate clap;
 use directories::{ProjectDirs};
 
-use std::path::{Path};
+use std::path::{Path, PathBuf};
 use std::fs::{self, OpenOptions, File};
-use std::io::{stdin, stdout, BufRead, BufReader, Write, Seek, SeekFrom};
+use std::io::{stdin, BufRead, BufReader, Write, Seek, SeekFrom};
+
+use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
 mod create_app;
 
@@ -17,6 +19,9 @@ fn main()
     if let None = project_directory {
         panic!("Cannot find base directory");
     }
+
+    let bufwtr: BufferWriter = BufferWriter::stdout(ColorChoice::Always);
+    let mut buffer = bufwtr.buffer();
 
     let project_directory = project_directory.unwrap();
 
@@ -36,6 +41,9 @@ fn main()
     let default_group = "general";
 
     let default_group_file_name = data_dir.join(&default_group);
+
+    let mut err_colorspec = ColorSpec::new();
+    err_colorspec.set_fg(Some(Color::Rgb(255,0,0)));
 
     match matches.subcommand()
     {
@@ -148,6 +156,8 @@ fn main()
                 }
             };
             
+            buffer.set_color(ColorSpec::new().set_fg(Some(Color::Rgb(240, 95, 95))));
+            
             match input_parsed
             {
                 InputValue::Indices(mut indices) => {
@@ -169,7 +179,7 @@ fn main()
 
                     for mut index in indices {
                         if index < 1 {
-                            println!("Invalid index: {}", index);
+                            writeln!(&mut buffer, "Invalid index: {}", index);
                             continue;
                         }
 
@@ -183,6 +193,8 @@ fn main()
 
                         deleted += 1;
                     }
+
+                    bufwtr.print(&buffer);
 
                     // file_read.
 
@@ -260,31 +272,49 @@ fn main()
 
                         if matching_lines.len() == 0
                         {
-                            println!("Substring did not match anything");
+                            writeln!(&mut buffer, "Substring did not match anything");
+                            bufwtr.print(&buffer);
+                            buffer.clear();
                             return;
                         }
 
+                        let mut question_colorspec = ColorSpec::new();
+                        question_colorspec.set_fg(Some(Color::Rgb(242,229,144)));
+
+                        buffer.set_color(ColorSpec::new().set_fg(Some(Color::Rgb(107, 222, 168))));
+
                         for (line, _, index) in matching_lines.iter() {
-                            println!("{}. {}", index, line);
+                            writeln!(&mut buffer, "{}. {}", index, line);
                         }
                         
+                        bufwtr.print(&buffer);
+                        buffer.clear();
+
                         let del: usize = if matching_lines.len() > 1 {
                             // 0 for all or index of line
                             loop {
-                                print!("\nWhich substring would you like to delete? (index or * for all) ");
+                                buffer.clear();
+
+                                buffer.set_color(&question_colorspec);
+                                write!(&mut buffer, "\nWhich substring would you like to delete? (index or * for all) ");
                                 let mut input = String::new();
-                                let _ = stdout().flush();
+                                bufwtr.print(&buffer);
+                                buffer.clear();
                                 stdin().read_line(&mut input).expect("Um what");
+
+                                buffer.set_color(&err_colorspec);
 
                                 if input.len() == 0
                                 {
-                                    println!("Please enter something");
+                                    writeln!(&mut buffer, "Please enter something");
+                                    bufwtr.print(&buffer);
                                     continue;
                                 }
 
                                 if input.contains(" ")
                                 {
-                                    println!("Please only enter an index or a *");
+                                    writeln!(&mut buffer, "Please only enter an index or a *");
+                                    bufwtr.print(&buffer);
                                     continue;
                                 }
                                 else
@@ -307,7 +337,9 @@ fn main()
                                     }
                                     else if first_char == '0'
                                     {
-                                        println!("Index is not 0-based!");
+                                        writeln!(&mut buffer, "Index is not 0-based!");
+                                        bufwtr.print(&buffer);
+                                        buffer.clear();
                                         continue;
                                     }
                                     else
@@ -369,8 +401,13 @@ fn main()
                                         let del: usize = {
                                             // println!("Current value of del: {}", del);
                                             // println!("Length of [matching_lines]: {}", matching_lines.len());
+
+                                            buffer.set_color(ColorSpec::new().set_fg(Some(Color::Rgb(0,0,0))));
+
                                             let x = matching_lines.get(del - 2).unwrap();
-                                            println!("Deleted: {}", x.0);
+                                            writeln!(&mut buffer, "Deleted: {}", x.0);
+                                            bufwtr.print(&buffer);
+
                                             *x.1
                                         };
 
@@ -488,36 +525,80 @@ fn main()
         },
         // list is the default subcommand
         (_, sub_matches_maybe) => {
-            println!("Used list");
+            buffer.set_color(ColorSpec::new().set_fg(Some(Color::Ansi256(209))));
 
-            let file_name = if let Some(sub_matches) = sub_matches_maybe
+            let file_names: Vec<std::path::PathBuf> = if let Some(sub_matches) = sub_matches_maybe
                 {
                     if let Some(group_name) = sub_matches.value_of("group-name")
                     {
-                        data_dir.join(group_name)
+                        if group_name.eq("*")
+                        {
+                            let files = fs::read_dir(data_dir);
+                            if let Ok(file_list) = files
+                            {
+                                file_list.filter_map(|x| {
+                                    if let Some(x) = x.ok()
+                                    {
+                                        Some(x.path())
+                                    }
+                                    else
+                                    {
+                                        None
+                                    }
+                                }).collect::<Vec<PathBuf>>()
+                            }
+                            else
+                            {
+                                println!("Error");
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            vec![data_dir.join(group_name)]
+                    }
                     }
                     else
                     {
-                        default_group_file_name
+                        vec![default_group_file_name]
                     }
                 }
                 else
                 {
-                    default_group_file_name
+                    vec![default_group_file_name]
                 };
 
+            for file_name in file_names
+            {
             if let Ok(file_to_list) = File::open(&file_name)
             {
+                    if let Some(file_name_string) = file_name.file_name()
+                    {
+                        if let Some(real_file_name_string) = file_name_string.to_str()
+                        {
+                            buffer.set_color(ColorSpec::new().set_fg(Some(Color::Rgb(158, 255, 168))));
+                            writeln!(&mut buffer, "Group \"{}\"", real_file_name_string);
+                            bufwtr.print(&buffer);
+                            buffer.clear();
+                            buffer.set_color(ColorSpec::new().set_fg(Some(Color::Ansi256(209))));
+                        }
+                    }
                 let reader = BufReader::new(file_to_list);
 
                 for (index, line) in reader.lines().enumerate() {
                     let line = line.unwrap();
-                    println!("{}. {}", index + 1, line);
+                        writeln!(&mut buffer, "{}. {}", index + 1, line);
                 }
             }
             else
             {
-                println!("Group not yet created");
+                    writeln!(&mut buffer, "Group not yet created");
+                }
+
+                bufwtr.print(&buffer);
+                buffer.clear();
+
+                println!();
             }
         }
     }
