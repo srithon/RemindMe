@@ -587,6 +587,7 @@ fn main()
                 }
                 else
                 {
+                    buffer.set_color(&err_colorspec);
                     writeln!(&mut buffer, "Group not yet created");
                 }
 
