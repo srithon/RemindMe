@@ -43,7 +43,7 @@ fn main()
     let default_group_file_name = data_dir.join(&default_group);
 
     let mut err_colorspec = ColorSpec::new();
-    err_colorspec.set_fg(Some(Color::Rgb(255,0,0)));
+    err_colorspec.set_fg(Some(Color::Rgb(255,90,90)));
 
     match matches.subcommand()
     {
