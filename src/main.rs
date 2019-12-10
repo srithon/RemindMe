@@ -7,7 +7,27 @@ use std::io::{stdin, BufRead, BufReader, Write, Seek, SeekFrom};
 
 use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
+#[macro_use]
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
+
 mod create_app;
+
+#[derive(Serialize, Deserialize)]
+struct Configuration
+{
+    default_group: String,
+}
+
+impl Configuration
+{
+    fn default() -> Configuration
+    {
+        Configuration {
+            default_group: "general".to_owned()
+        }
+    }
+}
 
 fn main()
 {
@@ -26,6 +46,49 @@ fn main()
     let project_directory = project_directory.unwrap();
 
     let data_dir = project_directory.data_dir();
+    let config_dir = project_directory.config_dir();
+
+    if !config_dir.exists()
+    {
+        if let Err(e) = fs::create_dir_all(&config_dir)
+        {
+            eprintln!("Could not create config folder\n{}", e);
+        }
+    }
+
+    let config_filename = config_dir.join("config.json");
+
+    let config_file_path = config_dir.join(config_filename);
+
+    let config: Configuration = if let Ok(config_file) = File::open(&config_file_path)
+    {
+        if let Ok(config) = serde_json::from_reader(config_file)
+        {
+            config
+        }
+        else
+        {
+            Configuration::default()
+        }
+    }
+    else // create config file
+    {
+        let config = Configuration::default();
+
+        if let Ok(config_file) = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(&config_file_path)
+        {
+            if let Err(e) = serde_json::to_writer(config_file, &config)
+            {
+                eprintln!("Could not write configuration to file\n{}", e);
+            }
+        }
+
+        config
+    };
+
 
     if !Path::exists(&data_dir)
     {
@@ -38,7 +101,7 @@ fn main()
         }
     }
 
-    let default_group = "general";
+    let default_group = config.default_group;
 
     let default_group_file_name = data_dir.join(&default_group);
 
