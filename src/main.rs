@@ -7,9 +7,7 @@ use std::io::{stdin, BufRead, BufReader, Write, Seek, SeekFrom};
 
 use termcolor::{BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
-#[macro_use]
 use serde::{Deserialize, Serialize};
-use serde_json::Result;
 
 mod create_app;
 
@@ -17,15 +15,42 @@ mod create_app;
 struct Configuration
 {
     default_group: String,
+    no_args_list_all_groups: bool
 }
 
 impl Configuration
 {
     fn default() -> Configuration
     {
-        Configuration {
-            default_group: "general".to_owned()
+        Configuration
+        {
+            default_group: "general".to_owned(),
+            no_args_list_all_groups: false
         }
+    }
+}
+
+fn list_files_in_dir(path: &std::path::Path) -> Option<Vec<std::path::PathBuf>>
+{
+    let files = fs::read_dir(path);
+    if let Ok(file_list) = files
+    {
+        let list = file_list.filter_map(|x| {
+            if let Some(x) = x.ok()
+            {
+                Some(x.path())
+            }
+            else
+            {
+                None
+            }
+        }).collect::<Vec<PathBuf>>();
+        Some(list)
+    }
+    else
+    {
+        println!("Error");
+        None
     }
 }
 
@@ -108,7 +133,9 @@ fn main()
     let mut err_colorspec = ColorSpec::new();
     err_colorspec.set_fg(Some(Color::Rgb(255,90,90)));
 
-    match matches.subcommand()
+    let subcommand = matches.subcommand();
+
+    match subcommand
     {
         ("finish", sub_matches_maybe) => {
             /*
@@ -591,25 +618,7 @@ fn main()
                     {
                         if group_name.eq("*")
                         {
-                            let files = fs::read_dir(data_dir);
-                            if let Ok(file_list) = files
-                            {
-                                file_list.filter_map(|x| {
-                                    if let Some(x) = x.ok()
-                                    {
-                                        Some(x.path())
-                                    }
-                                    else
-                                    {
-                                        None
-                                    }
-                                }).collect::<Vec<PathBuf>>()
-                            }
-                            else
-                            {
-                                println!("Error");
-                                return;
-                            }
+                            list_files_in_dir(&data_dir).unwrap()
                         }
                         else
                         {
@@ -623,7 +632,14 @@ fn main()
                 }
                 else
                 {
-                    vec![default_group_file_name]
+                    if config.no_args_list_all_groups
+                    {
+                        list_files_in_dir(&data_dir).unwrap()
+                    }
+                    else
+                    {
+                        vec![default_group_file_name]
+                    }
                 };
 
             for file_name in file_names
