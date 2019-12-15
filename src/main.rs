@@ -87,12 +87,19 @@ fn main()
 
     let config: Configuration = if let Ok(config_file) = File::open(&config_file_path)
     {
-        if let Ok(config) = serde_json::from_reader(config_file)
+        let parsed = serde_json::from_reader(config_file);
+
+        if let Ok(config) = parsed
         {
             config
         }
         else
         {
+            if let Err(e) = parsed
+            {
+                println!("Could not load config file: {}", e);
+            }
+
             Configuration::default()
         }
     }
@@ -387,11 +394,12 @@ fn main()
                                 let mut input = String::new();
                                 bufwtr.print(&buffer);
                                 buffer.clear();
+                                let _ = std::io::stdout().flush();
                                 stdin().read_line(&mut input).expect("Um what");
 
                                 buffer.set_color(&err_colorspec);
 
-                                if input.len() == 0
+                                if input.len() == 1
                                 {
                                     writeln!(&mut buffer, "Please enter something");
                                     bufwtr.print(&buffer);
@@ -406,9 +414,28 @@ fn main()
                                 }
                                 else
                                 {
-                                    let mut chars_iter = input.chars();
+                                    let mut first_word = String::with_capacity(5);
+                                    let mut chars_iter = input.trim().chars();
+                                    if !chars_iter.all(|x: char| {
+                                            if x.is_numeric() || x.eq_ignore_ascii_case(&'*')
+                                            {
+                                                first_word.push(x);
+                                                true
+                                            }
+                                            else
+                                            {
+                                                false
+                                            }
+                                        })
+                                    { //invalid input
+                                        writeln!(&mut buffer, "Invalid input!");
+                                        bufwtr.print(&buffer);
+                                        buffer.clear();
+                                        continue;
+                                    }
+
                                     let first_char = {
-                                        let c = chars_iter.next();
+                                        let c = first_word.chars().next();
                                         match c
                                         {
                                             Some(n) => n,
@@ -451,11 +478,19 @@ fn main()
                                             println!("{}", e);
                                             return;
                                         }
+                                        else if let Ok(ind) = ind
+                                        {
+                                            if ind > matching_lines.len()
+                                            {
+                                                writeln!(&mut buffer, "Index out of range!");
+                                                bufwtr.print(&buffer);
+                                                buffer.clear();
+                                                continue;
+                                            }
 
                                         // 0 is reserved for *
-                                        let ind = ind.unwrap() + 1;
-
-                                        break ind;
+                                            break ind + 1;
+                                        }
                                     }
                                 }
                             }
