@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 mod create_app;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct Configuration
 {
     default_group: String,
@@ -133,7 +133,7 @@ fn main()
         }
     }
 
-    let default_group = config.default_group;
+    let default_group = &config.default_group;
 
     let default_group_file_name = data_dir.join(&default_group);
 
@@ -458,20 +458,6 @@ fn main()
                                     }
                                     else
                                     {
-                                        let mut first_word = String::with_capacity(5);
-                                        first_word.push(first_char);
-                                        for c in chars_iter
-                                        {
-                                            if c.is_whitespace()
-                                            {
-                                                break;
-                                            }
-                                            else
-                                            {
-                                                first_word.push(c);
-                                            }
-                                        }
-
                                         let ind = first_word.parse::<usize>();
 
                                         if let Err(e) = ind {
@@ -488,7 +474,7 @@ fn main()
                                                 continue;
                                             }
 
-                                        // 0 is reserved for *
+                                            // 0 is reserved for *
                                             break ind + 1;
                                         }
                                     }
@@ -634,12 +620,42 @@ fn main()
         },
         ("config", sub_matches_maybe) => {
             if let Some(sub_matches) = sub_matches_maybe {
-                if let Some(sub_group) = sub_matches.value_of("group") {
-                    println!("Group has a value: {}", sub_group);
-                }
-                else
+                if let Some(new_group) = sub_matches.value_of("default")
                 {
-                    println!("Group does not have a value");
+                    let file_path = data_dir.join(&new_group);
+                    if let Ok(file) = OpenOptions::new()
+                        .write(true)
+                        .append(true)
+                        .create(true)
+                        .open(&file_path)
+                    {
+                        if let Ok(config_file) = OpenOptions::new()
+                            .write(true)
+                            .open(&config_file_path)
+                        {
+                            config_file.set_len(0);
+
+                            let mut new_config = config.clone();
+                            new_config.default_group = new_group.to_owned();
+
+                            match serde_json::to_writer(config_file, &new_config)
+                            {
+                                Ok(_) => (),
+                                Err(e) => {
+                                    println!("Error attempting to write new configuration\n{}", e);
+                                }
+                            }
+
+                            println!("Set default file to {}", file_path.to_str().unwrap());
+                        }
+                    }
+                    else
+                    {
+                        writeln!(&mut buffer, "Could not create file with group name!");
+                        bufwtr.print(&buffer);
+                        buffer.clear();
+                        return;
+                    }
                 }
             }
         },

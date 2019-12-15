@@ -113,11 +113,19 @@ pub fn create_app_object() -> App<'static, 'static> {
                 .about("Edit configuration of RemindMe")
                 .version("1.0")
                 .author("Sridaran T.")
-                .arg(
-                    Arg::with_name("print_configuration")
-                        .help("Prints all current configuration options")
-                        .long("print")
-                        .short("p")
+                .args(
+                    &vec![
+                        Arg::with_name("print_configuration")
+                            .help("Prints all current configuration options")
+                            .long("print")
+                            .short("p"),
+                        Arg::with_name("default")
+                            .help("Sets the default group")
+                            .long("default")
+                            .short("d")
+                            .takes_value(true)
+                    ]
                 )
+                
         )       
 }
